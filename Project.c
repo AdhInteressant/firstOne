@@ -1,4 +1,6 @@
 #include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
 struct customerRecords{
 	char name[100];
 	int id;
@@ -11,11 +13,13 @@ struct customerRecords{
 FILE *fp;
 
 int createId();
-void inputOrder(int);
+void inputOrder();
 void viewDetails();
 void moreOptions();
 void viewPendingOrders();
 void viewCanceledOrders();
+void deleteCanceledOrders();
+void clearScreen();
 
 void front()
 {	
@@ -26,7 +30,8 @@ void front()
 	printf("2. Have an ID ; Place an order\n");
 	printf("3. View order details\n");
 	printf("4. More options\n");
-	printf("5. Exit\n");
+	printf("5. Clear screen\n");
+	printf("6. Exit\n");
 	
 	int ch;
 	printf("Enter your choice: ");
@@ -37,7 +42,7 @@ void front()
 		goto label;
 	}
 	else if(ch==2){
-		inputOrder(createId());
+		inputOrder();
 		goto label;
 	}
 	else if(ch==3){
@@ -48,6 +53,9 @@ void front()
 		moreOptions();
 		goto label;
 	}else if(ch==5){
+		clearScreen();
+		goto label;
+	}else if(ch==6){
 		return;
 	}
 	else{
@@ -76,14 +84,52 @@ int createId()
 	return large+1;
 }
 
-void inputOrder(int idx)
+void inputOrder()
 {
-	fp=fopen("order.txt","a");
-	
+	fp=fopen("order.txt","r");
+	int idx=0;
+	while(fscanf(fp,"%d%s%s%d%s%d",&e1[idx].id,e1[idx].name,e1[idx].order,&e1[idx].qty,e1[idx].date,&e1[idx].status)!=EOF){
+		
+		idx++;
+	}
+	fclose(fp);
+
+	fp=fopen("order.txt","r");
+	int i=0;
+	int large=0;
+	while(fscanf(fp,"%d%s%s%d%s%d",&e1[i].id,e1[i].name,e1[i].order,&e1[i].qty,e1[i].date,&e1[i].status)!=EOF){
+		if(large<e1[i].id){
+				large=e1[i].id;
+		}
+		i++;
+	}
+	fclose(fp);
+
 	printf("Enter your id: ");
 	scanf("%d",&e1[idx].id);
+
+	char Name[100];
+	if(e1[idx].id<=large){
+		printf("\nWelcome back ");
+		i=0;
+		fp=fopen("order.txt","r");
+		while(fscanf(fp,"%d%s%s%d%s%d",&e1[i].id,e1[i].name,e1[i].order,&e1[i].qty,e1[i].date,&e1[i].status)!=EOF){
+			if(e1[i].id==e1[idx].id){
+				printf("%s\n",e1[i].name);
+				strcpy(Name,e1[i].name);
+				break;
+			}
+			i++;
+		}
+		fclose(fp);
+		goto here;
+	}
+
+	
 	printf("Enter your name (name_surname): ");
-	scanf("%s",e1[idx].name);
+	scanf("%s",e1[idx].name);	
+	strcpy(Name,e1[idx].name);
+	here:
 	printf("Enter your order (order_name): ");
 	scanf("%s",e1[idx].order);
 	printf("Enter the quantity of your order: ");
@@ -105,12 +151,13 @@ void inputOrder(int idx)
 			e1[idx].status=0; // 0 for canceled order
 			break;
 		default:
-			printf("\nInvalid choice.\n");			
+			printf("\nInvalid choice.\n");
 			goto label;
 	}
 	
+	fp=fopen("order.txt","a");
 	//writing data into the file
-	fprintf(fp,"%d\t%s\t\t%s\t\t%d\t\t%s\t%d\n",e1[idx].id,e1[idx].name,e1[idx].order,e1[idx].qty,e1[idx].date,e1[idx].status);
+	fprintf(fp,"%d\t%s\t\t%s\t\t%d\t\t%s\t%d\n",e1[idx].id,Name,e1[idx].order,e1[idx].qty,e1[idx].date,e1[idx].status);
 	if(e1[idx].status==0){
 		printf("\nYour order has been canceled.\n\n");
 	}else{
@@ -244,6 +291,54 @@ void viewCanceledOrders()
 	}
 	printf("\n");
 	fclose(fp);
+	
+	int ch;
+	label:
+	printf("Delete canceled orders?\n1.Yes\n2.No\nEnter your choice: ");
+	scanf("%d",&ch);
+	
+	switch(ch){
+		case 1:
+			deleteCanceledOrders();
+			break;
+		case 2:
+			printf("\n");
+			break;
+		default:
+			printf("\nInvalid Choice.\n");
+			goto label;
+	}
+	
+	return;
+}
+
+void deleteCanceledOrders()
+{
+	FILE *fp1;
+	fp=fopen("order.txt","r");
+	fp1=fopen("newFile.txt","a");
+	
+	if(fp==NULL){
+		printf("\nNo record exists.\n\n");
+		fclose(fp1);
+		fclose(fp);
+		return;
+	}
+	
+	int i=0;
+	while(fscanf(fp,"%d%s%s%d%s%d",&e1[i].id,e1[i].name,e1[i].order,&e1[i].qty,e1[i].date,&e1[i].status)!=EOF){
+		if(e1[i].status!=0){//status 1 means the orders are pending else the orders are canceled
+			fprintf(fp1,"%d\t%s\t\t%s\t\t%d\t\t%s\t%d\n",e1[i].id,e1[i].name,e1[i].order,e1[i].qty,e1[i].date,e1[i].status);
+		}
+		i++;
+	}
+	
+	remove("order.txt");
+	rename("newFile.txt","order.txt");
+	printf("\nRecords deleted successfully.\n\n");
+	
+	fclose(fp1);
+	fclose(fp);
 	return;
 }
 
@@ -268,6 +363,12 @@ void moreOptions()
 			printf("\nInvalid choice.\n");
 			goto label;
 	}
+	return;
+}
+
+void clearScreen()
+{
+	system("cls || clear");
 	return;
 }
 
